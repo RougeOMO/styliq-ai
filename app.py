@@ -18,27 +18,36 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🟢 CSS Update: Surgical Fix for File Uploader Visibility
+# 🟢 CSS Update: Fonts Restored + Dark Mode Fixes
 st.markdown("""
     <style>
+    /* Import Fonts: Cinzel (Luxury) & Inter (Clean) */
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
     
-    /* 1. Global Reset */
+    /* 1. Global Reset: Base Font (Inter) & Color (Black) */
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif; 
+        color: #1a1a1a !important;
     }
     
-    /* 2. Force White Background */
+    /* 2. HEADER RESTORATION: Force Cinzel for Titles (The Luxury Look) */
+    h1, h2, h3, h4 {
+        font-family: 'Cinzel', serif !important; 
+        font-weight: 700 !important;
+        color: #000000 !important;
+    }
+    
+    /* 3. Force White Background (Dark Mode Override) */
     .stApp {
         background-color: #FFFFFF !important;
     }
     
-    /* 3. Global Text to Black */
-    .stMarkdown, .stText, p, h1, h2, h3, h4, h5, h6, li, span, div[data-testid="stMarkdownContainer"] {
+    /* 4. Force General Text to Black */
+    .stMarkdown, .stText, p, li, span, div[data-testid="stMarkdownContainer"] {
         color: #1a1a1a !important;
     }
     
-    /* 4. Stylist Card Styling */
+    /* 5. Stylist Card Styling */
     .stylist-card {
         background: #F8F9FA; 
         border: 1px solid #E9ECEF; 
@@ -48,19 +57,25 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
         transition: all 0.3s ease;
     }
-    .stylist-card h2, .stylist-card p {
-        color: #1a1a1a !important; 
+    /* Stylist Name uses Cinzel, Role uses Inter */
+    .stylist-card h2 { 
+        font-family: 'Cinzel', serif !important; 
+        color: #000 !important;
+    }
+    .stylist-card p {
+        font-family: 'Inter', sans-serif !important;
+        color: #666 !important; 
     }
     .stylist-card:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08);}
     
-    /* 5. Button Styling */
+    /* 6. Button Styling */
     div.stButton > button:first-child {
         background-color: #000 !important; 
         color: #FFF !important; 
         border: 1px solid #000;
         border-radius: 0px; 
         padding: 14px 32px; 
-        font-family: 'Inter'; 
+        font-family: 'Inter', sans-serif; 
         font-weight: 600; 
         letter-spacing: 2px; 
         text-transform: uppercase;
@@ -70,43 +85,39 @@ st.markdown("""
         color: #000 !important; 
     }
     
-    /* 6. Sidebar Styling */
+    /* 7. Sidebar Styling */
     [data-testid="stSidebar"] {background-color: #FAFAFA !important; border-right: 1px solid #EEE;}
     
-    /* 🟢 7. NUCLEAR FIX FOR FILE UPLOADER 🟢 */
-    /* Target the container */
+    /* 8. NUCLEAR FIX FOR FILE UPLOADER (Visibility Fix) */
     [data-testid="stFileUploader"] {
         background-color: #FAFAFA !important;
         border: 1px dashed #DDD !important;
         border-radius: 0px; 
         padding: 20px;
     }
-    /* Target the dropzone specifically */
     [data-testid="stFileUploaderDropzone"] {
-        background-color: #FFFFFF !important; /* Force white background */
+        background-color: #FFFFFF !important;
     }
-    /* Force all text inside uploader to black */
     [data-testid="stFileUploaderDropzone"] div, 
     [data-testid="stFileUploaderDropzone"] span, 
     [data-testid="stFileUploaderDropzone"] small,
     [data-testid="stFileUploader"] section {
         color: #000000 !important;
+        font-family: 'Inter', sans-serif !important;
     }
-    /* Force the Cloud Icon to black */
     [data-testid="stFileUploaderDropzone"] svg {
         fill: #000000 !important;
         color: #000000 !important;
     }
-    /* Target the 'Browse files' button */
     [data-testid="stFileUploaderDropzone"] button {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border-color: #DDD !important;
     }
 
-    /* 8. Expander Styling */
+    /* 9. Expander Styling */
     .streamlit-expanderHeader {
-        font-family: 'Inter'; 
+        font-family: 'Inter', sans-serif; 
         font-weight: 600; 
         font-size: 14px;
         color: #000 !important; 
