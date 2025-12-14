@@ -15,33 +15,68 @@ st.set_page_config(
     page_title="STYLIQ | AI Image Consultant", 
     page_icon="💎", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
-    html, body, [class*="css"] {font-family: 'Inter', sans-serif; color: #1a1a1a;}
-    h1, h2, h3 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000;}
-    .stApp {background-color: #FFFFFF;}
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif; 
+    }
+    
+    .stApp {
+        background-color: #FFFFFF !important;
+    }
+    
+    .stMarkdown, .stText, p, h1, h2, h3, h4, h5, h6, li, span, div[data-testid="stMarkdownContainer"] {
+        color: #1a1a1a !important;
+    }
     
     .stylist-card {
-        background: #F8F9FA; border: 1px solid #E9ECEF; border-left: 4px solid #000;
-        border-radius: 4px; padding: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s ease;
+        background: #F8F9FA; 
+        border: 1px solid #E9ECEF; 
+        border-left: 4px solid #000;
+        border-radius: 4px; 
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
+        transition: all 0.3s ease;
+    }
+    .stylist-card h2, .stylist-card p {
+        color: #1a1a1a !important;
     }
     .stylist-card:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08);}
     
     div.stButton > button:first-child {
-        background-color: #000; color: #FFF !important; border: 1px solid #000;
-        border-radius: 0px; padding: 14px 32px; font-family: 'Inter'; font-weight: 600; 
-        letter-spacing: 2px; text-transform: uppercase;
+        background-color: #000 !important; 
+        color: #FFF !important;
+        border: 1px solid #000;
+        border-radius: 0px; 
+        padding: 14px 32px; 
+        font-family: 'Inter'; 
+        font-weight: 600; 
+        letter-spacing: 2px; 
+        text-transform: uppercase;
     }
-    div.stButton > button:first-child:hover {background-color: #FFF; color: #000 !important;}
+    div.stButton > button:first-child:hover {
+        background-color: #FFF !important; 
+        color: #000 !important;
+    }
     
     [data-testid="stSidebar"] {background-color: #FAFAFA; border-right: 1px solid #EEE;}
     [data-testid="stFileUploader"] {background-color: #FAFAFA; border: 1px dashed #DDD; border-radius: 0px; padding: 30px;}
-    .streamlit-expanderHeader {font-family: 'Inter'; font-weight: 600; font-size: 14px;}
+    
+    .streamlit-expanderHeader {
+        font-family: 'Inter'; 
+        font-weight: 600; 
+        font-size: 14px;
+        color: #000 !important;
+    }
+    .streamlit-expanderContent {
+        background-color: #FFFFFF !important;
+        color: #1a1a1a !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
