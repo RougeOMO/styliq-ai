@@ -26,11 +26,17 @@ st.markdown("""
         font-family: 'Inter', sans-serif; 
     }
     
+    h1, h2, h3 {
+        font-family: 'Cinzel', serif !important; 
+        font-weight: 700 !important; 
+        color: #000 !important;
+    }
+    
     .stApp {
         background-color: #FFFFFF !important;
     }
     
-    .stMarkdown, .stText, p, h1, h2, h3, h4, h5, h6, li, span, div[data-testid="stMarkdownContainer"] {
+    .stMarkdown, .stText, p, h4, h5, h6, li, span, div[data-testid="stMarkdownContainer"] {
         color: #1a1a1a !important;
     }
     
