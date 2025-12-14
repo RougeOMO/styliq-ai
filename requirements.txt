@@ -1,6 +1,0 @@
-streamlit
-google-generativeai
-mediapipe
-opencv-python-headless
-numpy
-Pillow
