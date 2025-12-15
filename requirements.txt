@@ -6,3 +6,4 @@ numpy
 Pillow
 replicate
 watchdog
+# Force rebuild v1
