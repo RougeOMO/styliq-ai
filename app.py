@@ -161,7 +161,7 @@ def analyze_face(uploaded_file, stylist_persona):
         ratio = face_len / face_width
 
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            model = genai.GenerativeModel('gemini-2.5-flash-lite')
             response = model.generate_content(
                 [SYSTEM_PROMPT_TEMPLATE.format(
                     s_name=stylist_persona['name'],
@@ -316,3 +316,4 @@ with col2:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
