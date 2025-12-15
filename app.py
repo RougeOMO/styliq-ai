@@ -141,6 +141,10 @@ def calculate_distance(p1, p2, w, h):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 def analyze_face(image_bytes, stylist_persona):
+    # 安全检查：如果字节为空，直接返回
+    if image_bytes is None:
+        return None, None, "No image data found."
+
     mp_face_mesh = mp.solutions.face_mesh
     file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
     image_cv = cv2.imdecode(file_bytes, 1)
@@ -158,18 +162,45 @@ def analyze_face(image_bytes, stylist_persona):
         face_width = calculate_distance(landmarks[234], landmarks[454], w, h)
         ratio = face_len / face_width
 
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
-        
-        response = model.generate_content(
-            [SYSTEM_PROMPT_TEMPLATE.format(
-                s_name=stylist_persona['name'],
-                s_role=stylist_persona['role'],
-                s_style=stylist_persona['style'],
-                s_tone=stylist_persona['tone'],
-                ratio=f"{ratio:.2f}"
-            ), image_pil], 
-            generation_config=genai.types.GenerationConfig(temperature=0.1)
-        )
+       
+        try:
+            model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            response = model.generate_content(
+                [SYSTEM_PROMPT_TEMPLATE.format(
+                    s_name=stylist_persona['name'],
+                    s_role=stylist_persona['role'],
+                    s_style=stylist_persona['style'],
+                    s_tone=stylist_persona['tone'],
+                    ratio=f"{ratio:.2f}"
+                ), image_pil], 
+                generation_config=genai.types.GenerationConfig(temperature=0.1)
+            )
+        except:
+            
+            try:
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(
+                    [SYSTEM_PROMPT_TEMPLATE.format(
+                        s_name=stylist_persona['name'],
+                        s_role=stylist_persona['role'],
+                        s_style=stylist_persona['style'],
+                        s_tone=stylist_persona['tone'],
+                        ratio=f"{ratio:.2f}"
+                    ), image_pil], 
+                    generation_config=genai.types.GenerationConfig(temperature=0.1)
+                )
+            except:
+                 model = genai.GenerativeModel('gemini-pro-vision')
+                 response = model.generate_content(
+                    [SYSTEM_PROMPT_TEMPLATE.format(
+                        s_name=stylist_persona['name'],
+                        s_role=stylist_persona['role'],
+                        s_style=stylist_persona['style'],
+                        s_tone=stylist_persona['tone'],
+                        ratio=f"{ratio:.2f}"
+                    ), image_pil],
+                    generation_config=genai.types.GenerationConfig(temperature=0.1)
+                )
 
         return image_pil, response.text, None
 
@@ -212,6 +243,7 @@ with col1:
             selected_stylist = random.choice(STYLISTS)
             st.session_state['current_stylist'] = selected_stylist
             with st.spinner(f"💎 Analyzing facial geometry..."):
+                # 获取并保存图片字节，绝对不使用 read()
                 img_bytes = uploaded_file.getvalue()
                 st.session_state['source_img_bytes'] = img_bytes
                 
@@ -264,13 +296,15 @@ with col2:
             with tab3:
                 st.info(f"Generating preview for: **{hairstyle_name}**")
                 
-                if st.session_state['source_img_bytes'] is None:
+                # 双重检查：确保 session state 里有图片
+                if st.session_state.get('source_img_bytes') is None:
                     st.warning("⚠️ Image session expired. Please re-upload.")
                 else:
                     if st.button("Generate Visualization"):
                         if "REPLICATE_API_TOKEN" in st.secrets:
                             try:
                                 with st.spinner("Creating your new look..."):
+                                    # 从 session state 读取，不依赖上传控件
                                     bytes_io = io.BytesIO(st.session_state['source_img_bytes'])
                                     
                                     model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
