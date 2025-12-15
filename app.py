@@ -10,32 +10,67 @@ import os
 import re 
 import replicate
 
+
 st.set_page_config(
     page_title="STYLIQ | AI Image Consultant", 
     page_icon="💎", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed" 
 )
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+    
     
     html, body, [class*="css"] {font-family: 'Inter', sans-serif; color: #1a1a1a !important;}
-    h1, h2, h3, h4 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000000 !important;}
+    h1, h2, h3 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000000 !important;}
     .stApp {background-color: #FFFFFF !important;}
-    .stMarkdown, .stText, p, li, span, div[data-testid="stMarkdownContainer"] {color: #1a1a1a !important;}
     
-    .stylist-card {background: #F8F9FA; border: 1px solid #E9ECEF; border-left: 4px solid #000; border-radius: 4px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s ease;}
-    .stylist-card h2 {font-family: 'Cinzel', serif !important; color: #000 !important;}
-    .stylist-card p {font-family: 'Inter', sans-serif !important; color: #666 !important;}
-    .stylist-card:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08);}
+   
+    .main-header {
+        text-align: center; 
+        padding-bottom: 40px;
+        border-bottom: 1px solid #F0F0F0;
+        margin-bottom: 40px;
+    }
+    .main-title { font-size: 60px; margin-bottom: 0px; letter-spacing: -1px; }
+    .sub-title { font-family: 'Inter'; font-size: 12px; color: #666; letter-spacing: 4px; text-transform: uppercase; margin-top: 10px;}
+
+ 
+    .section-header {
+        font-family: 'Inter'; 
+        font-size: 14px; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        letter-spacing: 1px;
+        margin-bottom: 20px;
+        color: #333;
+        border-left: 3px solid #000;
+        padding-left: 15px;
+    }
+
+
+    .upload-guide {
+        background-color: #FAFAFA;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #EEE;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+    }
+    .upload-guide strong { color: #000; font-weight: 600; }
+
     
     div.stButton > button[kind="primary"] {
         background-color: #000000 !important;
         border: 1px solid #000000 !important;
         border-radius: 0px !important;
-        padding: 14px 32px !important;
+        padding: 16px 40px !important;
+        width: 100%;
+        transition: all 0.3s ease;
     }
     div.stButton > button[kind="primary"] p {
         color: #FFFFFF !important;
@@ -43,49 +78,55 @@ st.markdown("""
         font-weight: 600 !important;
         letter-spacing: 2px !important;
         text-transform: uppercase !important;
+        font-size: 14px !important;
     }
     div.stButton > button[kind="primary"]:hover {
         background-color: #FFFFFF !important;
-        border: 1px solid #000000 !important;
-    }
-    div.stButton > button[kind="primary"]:hover p {
         color: #000000 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    div.stButton > button[kind="primary"]:hover p { color: #000000 !important; }
+
+  
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: #FAFAFA;
+        border-radius: 8px;
+        border: 1px dashed #DDD;
+        color: #999;
     }
     
-    [data-testid="stSidebar"] {background-color: #FAFAFA !important; border-right: 1px solid #EEE;}
-    [data-testid="stFileUploader"] {background-color: #FAFAFA !important; border: 1px dashed #DDD !important; border-radius: 0px; padding: 20px;}
-    [data-testid="stFileUploaderDropzone"] {background-color: #FFFFFF !important;}
-    [data-testid="stFileUploaderDropzone"] div, [data-testid="stFileUploaderDropzone"] span, [data-testid="stFileUploaderDropzone"] small, [data-testid="stFileUploader"] section {color: #000000 !important; font-family: 'Inter', sans-serif !important;}
-    [data-testid="stFileUploaderDropzone"] svg {fill: #000000 !important; color: #000000 !important;}
-    [data-testid="stFileUploaderDropzone"] button {background-color: #FFFFFF !important; color: #000000 !important; border-color: #DDD !important;}
+  
+    [data-testid="stFileUploader"] {padding: 0px;}
+    [data-testid="stFileUploader"] section {padding: 30px; background-color: #FFF; border: 1px dashed #CCC;}
     
-    .streamlit-expanderHeader {font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; color: #000 !important;}
-    .streamlit-expanderContent {background-color: #FFFFFF !important; color: #1a1a1a !important;}
     </style>
 """, unsafe_allow_html=True)
+
 
 try:
     if "API_KEY" in st.secrets:
         API_KEY = st.secrets["API_KEY"]
         genai.configure(api_key=API_KEY)
     else:
-        st.error("🚨 Error: API_KEY missing in Secrets.")
+        st.error("🚨 Error: API_KEY missing.")
         st.stop()
         
     if "REPLICATE_API_TOKEN" in st.secrets:
         os.environ["REPLICATE_API_TOKEN"] = st.secrets["REPLICATE_API_TOKEN"]
-    else:
-        st.warning("⚠️ REPLICATE_API_TOKEN missing. Try-on feature will be disabled.")
 
     if "SYSTEM_PROMPT" in st.secrets:
         SYSTEM_PROMPT_TEMPLATE = st.secrets["SYSTEM_PROMPT"]
     else:
-        st.error("🚨 Error: SYSTEM_PROMPT missing in Secrets.")
+        st.error("🚨 Error: SYSTEM_PROMPT missing.")
         st.stop()
         
 except FileNotFoundError:
-    st.error("🚨 Secrets File Not Found. Please configure secrets on Streamlit Cloud.")
+    st.error("🚨 Secrets not found.")
     st.stop()
+
 
 STYLISTS = [
     {"name": "ALEX", "role": "Classic Director", "style": "Timeless Precision", "tone": "Sophisticated, Polite", "avatar": "🏛️"},
@@ -141,160 +182,138 @@ def analyze_face(uploaded_file, stylist_persona):
         )
         return image_pil, response.text, None
 
-with st.sidebar:
-    st.title("💎 STYLIQ")
-    st.markdown("<p style='font-size: 10px; color: #888; letter-spacing: 3px; text-transform: uppercase;'>Intelligent Aesthetics</p>", unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("### 🧬 STYLIQ LAB")
-    
-    if "REPLICATE_API_TOKEN" in st.secrets:
-        st.success("🔌 AI Engine: Online")
-    else:
-        st.warning("🔌 AI Engine: Offline")
 
-st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>STYLIQ</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #666; font-family: Inter; letter-spacing: 4px; font-size: 12px; margin-bottom: 50px;'>THE ALGORITHM OF BEAUTY</p>", unsafe_allow_html=True)
+st.markdown("""
+    <div class="main-header">
+        <div class="main-title" style="font-family: 'Cinzel', serif;">STYLIQ</div>
+        <div class="sub-title">Intelligent Aesthetics</div>
+    </div>
+""", unsafe_allow_html=True)
 
 if 'current_stylist' not in st.session_state:
     st.session_state['current_stylist'] = None
 
-with st.container():
-    col1, col2 = st.columns([1, 1], gap="large")
 
-    with col1:
-        st.markdown("### 01. DATA SOURCE")
+col1, col2 = st.columns([4, 6], gap="large") 
+
+-
+with col1:
+    
+    st.markdown('<div class="section-header">Step 1: Upload Portrait</div>', unsafe_allow_html=True)
+    
+    
+    st.markdown("""
+    <div class="upload-guide">
+        To ensure the most accurate AI analysis, please upload a clear photo:<br><br>
+        • <strong>Look Straight:</strong> Face the camera directly.<br>
+        • <strong>Even Lighting:</strong> Avoid strong shadows.<br>
+        • <strong>No Accessories:</strong> Remove sunglasses or hats.<br>
+        <br>
+        <span style="font-size: 10px; color: #999;">🔒 Data is processed privately and deleted instantly.</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'], label_visibility="collapsed")
+    
+    if uploaded_file:
+        st.markdown("---")
+        st.image(uploaded_file, caption="Source Image", use_column_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
+        if st.button("✨ START ANALYSIS", type="primary"):
+            selected_stylist = random.choice(STYLISTS)
+            st.session_state['current_stylist'] = selected_stylist
+            with st.spinner(f"💎 Analyzing facial geometry..."):
+                uploaded_file.seek(0)
+                img, report, error = analyze_face(uploaded_file, selected_stylist)
+                st.session_state['result'] = (report, error)
+
+
+with col2:
+    st.markdown('<div class="section-header">Step 2: Consultation Report</div>', unsafe_allow_html=True)
+    
+    stylist = st.session_state['current_stylist']
+    
+    if stylist and 'result' in st.session_state:
+       
+        report, error = st.session_state['result']
+        if error:
+            st.error(error)
+        else:
+           
+            s_name = stylist['name']
+            s_role = stylist['role'].upper()
+            st.markdown(f"""
+            <div style="background: #F8F9FA; padding: 15px; border-left: 3px solid #000; margin-bottom: 20px;">
+                <div style="font-family: 'Cinzel'; font-weight: 700;">DIRECTOR: {s_name}</div>
+                <div style="font-size: 11px; color: #666; letter-spacing: 1px;">{s_role}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            hairstyle_name = "New Hairstyle"
+            for line in report.split('\n'):
+                if "HAIRSTYLE_NAME:" in line:
+                    extracted = line.split(":")[1].strip()
+                    if extracted and "[" not in extracted:
+                        hairstyle_name = extracted
+            if hairstyle_name == "New Hairstyle":
+                match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
+                if match:
+                    hairstyle_name = match.group(1).strip()
+
+           
+            tab1, tab2, tab3 = st.tabs(["🧬 REPORT", "🖼️ REFERENCES", "✨ AI TRY-ON"])
+            
+            with tab1:
+                clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
+                st.markdown(clean_report)
+            
+            with tab2:
+                st.markdown(f"**Recommended Style:** {hairstyle_name}")
+                q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
+                c1, c2 = st.columns(2)
+                with c1: st.link_button("Search Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
+                with c2: st.link_button("Search Google", f"https://www.google.com/search?tbm=isch&q={q}")
+            
+            with tab3:
+                st.info(f"Generating preview for: **{hairstyle_name}**")
+                if st.button("Generate Visualization"):
+                    if "REPLICATE_API_TOKEN" in st.secrets:
+                        try:
+                            with st.spinner("Creating your new look..."):
+                                with open("temp_upload.jpg", "wb") as f:
+                                    uploaded_file.seek(0)
+                                    f.write(uploaded_file.read())
+                                
+                                model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
+                                output = replicate.run(
+                                    model_id,
+                                    input={
+                                        "image": open("temp_upload.jpg", "rb"),
+                                        "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
+                                        "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
+                                        "ip_adapter_scale": 0.8,
+                                        "controlnet_conditioning_scale": 0.8,
+                                        "num_inference_steps": 30,
+                                        "guidance_scale": 5
+                                    }
+                                )
+                                if output:
+                                    st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_column_width=True)
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                    else:
+                        st.warning("AI Generation is disabled (Missing Key).")
+
+    else:
+     
         st.markdown("""
-        <style>
-            .instruction-text { font-family: 'Inter'; font-size: 11px; color: #666; letter-spacing: 0.5px; }
-            .service-pill { 
-                background: #F3F4F6; padding: 4px 12px; border-radius: 20px; 
-                font-size: 10px; font-weight: 600; color: #333; letter-spacing: 1px;
-                display: inline-block; margin: 0 5px;
-            }
-        </style>
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <span class="service-pill">🧬 4D REPORT</span>
-            <span class="service-pill">💇‍♀️ STYLE ADVICE</span>
-            <span class="service-pill">🖼️ AI TRY-ON</span>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; text-align: center; margin-bottom: 15px; padding: 0 10px;">
-            <div style="flex: 1;">
-                <div style="font-size: 20px; margin-bottom: 5px;">📸</div>
-                <div class="instruction-text">Front Facing</div>
-            </div>
-            <div style="flex: 1; border-left: 1px solid #EEE; border-right: 1px solid #EEE;">
-                <div style="font-size: 20px; margin-bottom: 5px;">💡</div>
-                <div class="instruction-text">Good Light</div>
-            </div>
-            <div style="flex: 1;">
-                <div style="font-size: 20px; margin-bottom: 5px;">🔒</div>
-                <div class="instruction-text">Private</div>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 9px; color: #999;">
-                Photos are auto-deleted. No storage. No training.
+        <div class="empty-state">
+            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
+            <div style="font-weight: 600; color: #333;">Awaiting Portrait</div>
+            <div style="font-size: 12px; margin-top: 5px;">
+                Upload your photo on the left to unlock:<br>
+                Face Shape Analysis • Personalized Cut • AI Visuals
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        uploaded_file = st.file_uploader("Upload Portrait", type=['jpg', 'jpeg', 'png'])
-        
-        if uploaded_file:
-            st.markdown("""<style>img {filter: grayscale(0%); transition: all 0.5s;} img:hover {filter: grayscale(0%);}</style>""", unsafe_allow_html=True)
-            st.image(uploaded_file, use_container_width=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            if st.button("✨ INITIALIZE ANALYSIS", type="primary"):
-                selected_stylist = random.choice(STYLISTS)
-                st.session_state['current_stylist'] = selected_stylist
-                with st.spinner(f"💎 {selected_stylist['name']} is connecting..."):
-                    uploaded_file.seek(0)
-                    img, report, error = analyze_face(uploaded_file, selected_stylist)
-                    st.session_state['result'] = (report, error)
-
-    with col2:
-        st.markdown("### 02. INTELLIGENCE")
-        stylist = st.session_state['current_stylist']
-        
-        if stylist and 'result' in st.session_state:
-            report, error = st.session_state['result']
-            if error:
-                st.error(error)
-            else:
-                s_name = stylist['name']
-                s_role = stylist['role'].upper()
-                s_avatar = stylist['avatar']
-                
-                st.markdown(f"""
-                <div class="stylist-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <h2 style="margin: 0; font-size: 20px; letter-spacing: 1px;">{s_name}</h2>
-                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 2px;">{s_role}</p>
-                        </div>
-                        <div style="font-size: 32px;">{s_avatar}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                hairstyle_name = "New Hairstyle"
-                for line in report.split('\n'):
-                    if "HAIRSTYLE_NAME:" in line:
-                        extracted = line.split(":")[1].strip()
-                        if extracted and "[" not in extracted:
-                            hairstyle_name = extracted
-                if hairstyle_name == "New Hairstyle":
-                    match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
-                    if match:
-                        hairstyle_name = match.group(1).strip()
-
-                tab1, tab2, tab3 = st.tabs(["ANALYSIS", "MOODBOARD", "TRY-ON"])
-                with tab1:
-                    clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
-                    st.markdown(clean_report)
-                with tab2:
-                    st.markdown(f"<h3 style='color: #000;'>{hairstyle_name}</h3>", unsafe_allow_html=True)
-                    st.caption("Global references.")
-                    q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
-                    c1, c2 = st.columns(2)
-                    with c1: st.link_button("Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
-                    with c2: st.link_button("Google", f"https://www.google.com/search?tbm=isch&q={q}")
-                
-                with tab3:
-                    st.markdown(f"### Virtual Lab: **{hairstyle_name}**")
-                    st.caption("Generates a realistic preview using InstantID technology.")
-                    
-                    if st.button("🧬 GENERATE PREVIEW (BETA)", type="secondary"):
-                        if "REPLICATE_API_TOKEN" in st.secrets:
-                            try:
-                                with st.spinner("🔌 Connecting to Replicate GPU Cluster..."):
-                                    with open("temp_upload.jpg", "wb") as f:
-                                        uploaded_file.seek(0)
-                                        f.write(uploaded_file.read())
-                                    
-                                    model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
-                                    
-                                    output = replicate.run(
-                                        model_id,
-                                        input={
-                                            "image": open("temp_upload.jpg", "rb"),
-                                            "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
-                                            "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
-                                            "ip_adapter_scale": 0.8,
-                                            "controlnet_conditioning_scale": 0.8,
-                                            "num_inference_steps": 30,
-                                            "guidance_scale": 5
-                                        }
-                                    )
-                                    if output:
-                                        st.image(output[0], caption=f"AI Generated: {hairstyle_name}", use_container_width=True)
-                                        st.success("✅ Generation Complete!")
-                            except Exception as e:
-                                st.error(f"⚠️ Replicate Error: {e}")
-                        else:
-                            st.warning("⚠️ Running in Safe Mode (No Replicate Token Found).")
