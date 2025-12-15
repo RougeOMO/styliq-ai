@@ -57,7 +57,7 @@ def analyze_logic(image_bytes, stylist):
         image_pil = Image.fromarray(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
         
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash-lite')
             response = model.generate_content([SYSTEM_PROMPT_TEMPLATE.format(s_name=stylist['name'], s_role=stylist['role'], s_style=stylist['style'], s_tone=stylist['tone'], ratio=f"{ratio:.2f}"), image_pil])
             return response.text, None
         except Exception as e:
