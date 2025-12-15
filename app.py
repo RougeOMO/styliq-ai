@@ -31,8 +31,26 @@ st.markdown("""
     .stylist-card p {font-family: 'Inter', sans-serif !important; color: #666 !important;}
     .stylist-card:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08);}
     
-    div.stButton > button:first-child {background-color: #000 !important; color: #FFF !important; border: 1px solid #000; border-radius: 0px; padding: 14px 32px; font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;}
-    div.stButton > button:first-child:hover {background-color: #FFF !important; color: #000 !important;}
+    div.stButton > button[kind="primary"] {
+        background-color: #000000 !important;
+        border: 1px solid #000000 !important;
+        border-radius: 0px !important;
+        padding: 14px 32px !important;
+    }
+    div.stButton > button[kind="primary"] p {
+        color: #FFFFFF !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: 2px !important;
+        text-transform: uppercase !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #FFFFFF !important;
+        border: 1px solid #000000 !important;
+    }
+    div.stButton > button[kind="primary"]:hover p {
+        color: #000000 !important;
+    }
     
     [data-testid="stSidebar"] {background-color: #FAFAFA !important; border-right: 1px solid #EEE;}
     [data-testid="stFileUploader"] {background-color: #FAFAFA !important; border: 1px dashed #DDD !important; border-radius: 0px; padding: 20px;}
@@ -109,7 +127,6 @@ def analyze_face(uploaded_file, stylist_persona):
 
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-    
         prompt = SYSTEM_PROMPT_TEMPLATE.format(
             s_name=stylist_persona['name'],
             s_role=stylist_persona['role'],
@@ -148,45 +165,48 @@ with st.container():
         st.markdown("### 01. DATA SOURCE")
         
         st.markdown("""
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
-                <div style="font-size: 20px;">📸</div>
-                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">FRONT FACING</div>
-            </div>
-            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
-                <div style="font-size: 20px;">💡</div>
-                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">GOOD LIGHT</div>
-            </div>
-            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
-                <div style="font-size: 20px;">🔒</div>
-                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">PRIVATE</div>
-            </div>
+        <style>
+            .instruction-text { font-family: 'Inter'; font-size: 11px; color: #666; letter-spacing: 0.5px; }
+            .service-pill { 
+                background: #F3F4F6; padding: 4px 12px; border-radius: 20px; 
+                font-size: 10px; font-weight: 600; color: #333; letter-spacing: 1px;
+                display: inline-block; margin: 0 5px;
+            }
+        </style>
+        
+        <div style="text-align: center; margin-bottom: 25px;">
+            <span class="service-pill">🧬 4D REPORT</span>
+            <span class="service-pill">💇‍♀️ STYLE ADVICE</span>
+            <span class="service-pill">🖼️ AI TRY-ON</span>
         </div>
 
-        <div style="background: #FFF; border: 1px dashed #DDD; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-            <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">INCLUDED SERVICES</div>
-            <div style="display: flex; justify-content: center; gap: 20px; font-size: 12px; font-weight: 500; color: #333;">
-                <span>🧬 4D Face Report</span>
-                <span style="color: #DDD;">|</span>
-                <span>💇‍♀️ Stylist Advice</span>
-                <span style="color: #DDD;">|</span>
-                <span>🖼️ AI Try-On</span>
+        <div style="display: flex; justify-content: space-between; text-align: center; margin-bottom: 15px; padding: 0 10px;">
+            <div style="flex: 1;">
+                <div style="font-size: 20px; margin-bottom: 5px;">📸</div>
+                <div class="instruction-text">Front Facing</div>
+            </div>
+            <div style="flex: 1; border-left: 1px solid #EEE; border-right: 1px solid #EEE;">
+                <div style="font-size: 20px; margin-bottom: 5px;">💡</div>
+                <div class="instruction-text">Good Light</div>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 20px; margin-bottom: 5px;">🔒</div>
+                <div class="instruction-text">Private</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 9px; color: #999;">
+                Photos are auto-deleted. No storage. No training.
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        with st.expander("🛡️ Privacy Policy", expanded=False):
-             st.markdown("""
-             <div style="font-size: 12px; color: #666;">
-             Your photos are deleted immediately after analysis. No storage, no training.
-             </div>
-             """, unsafe_allow_html=True)
-            
         uploaded_file = st.file_uploader("Upload Portrait", type=['jpg', 'jpeg', 'png'])
         
         if uploaded_file:
             st.markdown("""<style>img {filter: grayscale(0%); transition: all 0.5s;} img:hover {filter: grayscale(0%);}</style>""", unsafe_allow_html=True)
-            st.image(uploaded_file, use_column_width=True)
+            st.image(uploaded_file, use_container_width=True)
             st.markdown("<br>", unsafe_allow_html=True)
             
             if st.button("✨ INITIALIZE ANALYSIS", type="primary"):
@@ -257,7 +277,6 @@ with st.container():
                                         uploaded_file.seek(0)
                                         f.write(uploaded_file.read())
                                     
-                                    # InstantID Model ID (Fixed Version)
                                     model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
                                     
                                     output = replicate.run(
@@ -273,7 +292,7 @@ with st.container():
                                         }
                                     )
                                     if output:
-                                        st.image(output[0], caption=f"AI Generated: {hairstyle_name}", use_column_width=True)
+                                        st.image(output[0], caption=f"AI Generated: {hairstyle_name}", use_container_width=True)
                                         st.success("✅ Generation Complete!")
                             except Exception as e:
                                 st.error(f"⚠️ Replicate Error: {e}")
