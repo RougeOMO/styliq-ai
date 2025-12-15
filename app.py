@@ -95,7 +95,6 @@ st.markdown("""
     
     [data-testid="stFileUploader"] {padding: 0px;}
     [data-testid="stFileUploader"] section {padding: 30px; background-color: #FFF; border: 1px dashed #CCC;}
-    
     </style>
 """, unsafe_allow_html=True)
 
@@ -249,7 +248,81 @@ with col2:
         else:
             s_name = stylist['name']
             s_role = stylist['role'].upper()
-            st.markdown(f"""
+            
+            # --- 修复点：将容易出错的长 HTML 单独定义 ---
+            director_card_html = f"""
             <div style="background: #F8F9FA; padding: 15px; border-left: 3px solid #000; margin-bottom: 20px;">
                 <div style="font-family: 'Cinzel'; font-weight: 700;">DIRECTOR: {s_name}</div>
-                <div style="font-size: 11px; color: #66
+                <div style="font-size: 11px; color: #666; letter-spacing: 1px;">{s_role}</div>
+            </div>
+            """
+            st.markdown(director_card_html, unsafe_allow_html=True)
+
+            hairstyle_name = "New Hairstyle"
+            for line in report.split('\n'):
+                if "HAIRSTYLE_NAME:" in line:
+                    extracted = line.split(":")[1].strip()
+                    if extracted and "[" not in extracted:
+                        hairstyle_name = extracted
+            if hairstyle_name == "New Hairstyle":
+                match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
+                if match:
+                    hairstyle_name = match.group(1).strip()
+
+            tab1, tab2, tab3 = st.tabs(["🧬 REPORT", "🖼️ REFERENCES", "✨ AI TRY-ON"])
+            
+            with tab1:
+                clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
+                st.markdown(clean_report)
+            
+            with tab2:
+                st.markdown(f"**Recommended Style:** {hairstyle_name}")
+                q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
+                c1, c2 = st.columns(2)
+                with c1: st.link_button("Search Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
+                with c2: st.link_button("Search Google", f"https://www.google.com/search?tbm=isch&q={q}")
+            
+            with tab3:
+                st.info(f"Generating preview for: **{hairstyle_name}**")
+                
+                if st.session_state.get('source_img_bytes') is None:
+                    st.warning("⚠️ Image session expired. Please re-upload.")
+                else:
+                    if st.button("Generate Visualization"):
+                        if "REPLICATE_API_TOKEN" in st.secrets:
+                            try:
+                                with st.spinner("Creating your new look..."):
+                                    with open("temp_upload.jpg", "wb") as f:
+                                        f.write(st.session_state['source_img_bytes'])
+                                    
+                                    model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
+                                    output = replicate.run(
+                                        model_id,
+                                        input={
+                                            "image": open("temp_upload.jpg", "rb"),
+                                            "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
+                                            "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
+                                            "ip_adapter_scale": 0.8,
+                                            "controlnet_conditioning_scale": 0.8,
+                                            "num_inference_steps": 30,
+                                            "guidance_scale": 5
+                                        }
+                                    )
+                                    if output:
+                                        st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_column_width=True)
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+                        else:
+                            st.warning("AI Generation is disabled (Missing Key).")
+
+    else:
+        st.markdown("""
+        <div class="empty-state">
+            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
+            <div style="font-weight: 600; color: #333;">Awaiting Portrait</div>
+            <div style="font-size: 12px; margin-top: 5px;">
+                Upload your photo on the left to unlock:<br>
+                Face Shape Analysis • Personalized Cut • AI Visuals
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
