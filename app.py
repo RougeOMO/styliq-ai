@@ -5,11 +5,10 @@ import google.generativeai as genai
 import numpy as np
 from PIL import Image
 import math
-import urllib.parse
 import random
-import time 
 import os 
 import re 
+import replicate
 
 st.set_page_config(
     page_title="STYLIQ | AI Image Consultant", 
@@ -18,128 +17,57 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🟢 CSS Update: Fonts Restored + Dark Mode Fixes
 st.markdown("""
     <style>
-    /* Import Fonts: Cinzel (Luxury) & Inter (Clean) */
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
     
-    /* 1. Global Reset: Base Font (Inter) & Color (Black) */
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif; 
-        color: #1a1a1a !important;
-    }
+    html, body, [class*="css"] {font-family: 'Inter', sans-serif; color: #1a1a1a !important;}
+    h1, h2, h3, h4 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000000 !important;}
+    .stApp {background-color: #FFFFFF !important;}
+    .stMarkdown, .stText, p, li, span, div[data-testid="stMarkdownContainer"] {color: #1a1a1a !important;}
     
-    /* 2. HEADER RESTORATION: Force Cinzel for Titles (The Luxury Look) */
-    h1, h2, h3, h4 {
-        font-family: 'Cinzel', serif !important; 
-        font-weight: 700 !important;
-        color: #000000 !important;
-    }
-    
-    /* 3. Force White Background (Dark Mode Override) */
-    .stApp {
-        background-color: #FFFFFF !important;
-    }
-    
-    /* 4. Force General Text to Black */
-    .stMarkdown, .stText, p, li, span, div[data-testid="stMarkdownContainer"] {
-        color: #1a1a1a !important;
-    }
-    
-    /* 5. Stylist Card Styling */
-    .stylist-card {
-        background: #F8F9FA; 
-        border: 1px solid #E9ECEF; 
-        border-left: 4px solid #000;
-        border-radius: 4px; 
-        padding: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
-        transition: all 0.3s ease;
-    }
-    /* Stylist Name uses Cinzel, Role uses Inter */
-    .stylist-card h2 { 
-        font-family: 'Cinzel', serif !important; 
-        color: #000 !important;
-    }
-    .stylist-card p {
-        font-family: 'Inter', sans-serif !important;
-        color: #666 !important; 
-    }
+    .stylist-card {background: #F8F9FA; border: 1px solid #E9ECEF; border-left: 4px solid #000; border-radius: 4px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.3s ease;}
+    .stylist-card h2 {font-family: 'Cinzel', serif !important; color: #000 !important;}
+    .stylist-card p {font-family: 'Inter', sans-serif !important; color: #666 !important;}
     .stylist-card:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08);}
     
-    /* 6. Button Styling */
-    div.stButton > button:first-child {
-        background-color: #000 !important; 
-        color: #FFF !important; 
-        border: 1px solid #000;
-        border-radius: 0px; 
-        padding: 14px 32px; 
-        font-family: 'Inter', sans-serif; 
-        font-weight: 600; 
-        letter-spacing: 2px; 
-        text-transform: uppercase;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #FFF !important; 
-        color: #000 !important; 
-    }
+    div.stButton > button:first-child {background-color: #000 !important; color: #FFF !important; border: 1px solid #000; border-radius: 0px; padding: 14px 32px; font-family: 'Inter', sans-serif; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;}
+    div.stButton > button:first-child:hover {background-color: #FFF !important; color: #000 !important;}
     
-    /* 7. Sidebar Styling */
     [data-testid="stSidebar"] {background-color: #FAFAFA !important; border-right: 1px solid #EEE;}
+    [data-testid="stFileUploader"] {background-color: #FAFAFA !important; border: 1px dashed #DDD !important; border-radius: 0px; padding: 20px;}
+    [data-testid="stFileUploaderDropzone"] {background-color: #FFFFFF !important;}
+    [data-testid="stFileUploaderDropzone"] div, [data-testid="stFileUploaderDropzone"] span, [data-testid="stFileUploaderDropzone"] small, [data-testid="stFileUploader"] section {color: #000000 !important; font-family: 'Inter', sans-serif !important;}
+    [data-testid="stFileUploaderDropzone"] svg {fill: #000000 !important; color: #000000 !important;}
+    [data-testid="stFileUploaderDropzone"] button {background-color: #FFFFFF !important; color: #000000 !important; border-color: #DDD !important;}
     
-    /* 8. NUCLEAR FIX FOR FILE UPLOADER (Visibility Fix) */
-    [data-testid="stFileUploader"] {
-        background-color: #FAFAFA !important;
-        border: 1px dashed #DDD !important;
-        border-radius: 0px; 
-        padding: 20px;
-    }
-    [data-testid="stFileUploaderDropzone"] {
-        background-color: #FFFFFF !important;
-    }
-    [data-testid="stFileUploaderDropzone"] div, 
-    [data-testid="stFileUploaderDropzone"] span, 
-    [data-testid="stFileUploaderDropzone"] small,
-    [data-testid="stFileUploader"] section {
-        color: #000000 !important;
-        font-family: 'Inter', sans-serif !important;
-    }
-    [data-testid="stFileUploaderDropzone"] svg {
-        fill: #000000 !important;
-        color: #000000 !important;
-    }
-    [data-testid="stFileUploaderDropzone"] button {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border-color: #DDD !important;
-    }
-
-    /* 9. Expander Styling */
-    .streamlit-expanderHeader {
-        font-family: 'Inter', sans-serif; 
-        font-weight: 600; 
-        font-size: 14px;
-        color: #000 !important; 
-    }
-    .streamlit-expanderContent {
-        background-color: #FFFFFF !important;
-        color: #1a1a1a !important; 
-    }
+    .streamlit-expanderHeader {font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; color: #000 !important;}
+    .streamlit-expanderContent {background-color: #FFFFFF !important; color: #1a1a1a !important;}
     </style>
 """, unsafe_allow_html=True)
 
 try:
     if "API_KEY" in st.secrets:
         API_KEY = st.secrets["API_KEY"]
+        genai.configure(api_key=API_KEY)
     else:
-        st.error("🚨 STYLIQ SYSTEM ERROR: API Key missing in Secrets.")
+        st.error("🚨 Error: API_KEY missing in Secrets.")
         st.stop()
-except FileNotFoundError:
-    st.error("🚨 Local Configuration Missing. Please create .streamlit/secrets.toml")
-    st.stop()
+        
+    if "REPLICATE_API_TOKEN" in st.secrets:
+        os.environ["REPLICATE_API_TOKEN"] = st.secrets["REPLICATE_API_TOKEN"]
+    else:
+        st.warning("⚠️ REPLICATE_API_TOKEN missing. Try-on feature will be disabled.")
 
-genai.configure(api_key=API_KEY)
+    if "SYSTEM_PROMPT" in st.secrets:
+        SYSTEM_PROMPT_TEMPLATE = st.secrets["SYSTEM_PROMPT"]
+    else:
+        st.error("🚨 Error: SYSTEM_PROMPT missing in Secrets.")
+        st.stop()
+        
+except FileNotFoundError:
+    st.error("🚨 Secrets File Not Found. Please configure secrets on Streamlit Cloud.")
+    st.stop()
 
 STYLISTS = [
     {"name": "ALEX", "role": "Classic Director", "style": "Timeless Precision", "tone": "Sophisticated, Polite", "avatar": "🏛️"},
@@ -163,7 +91,6 @@ def calculate_distance(p1, p2, w, h):
 
 def analyze_face(uploaded_file, stylist_persona):
     mp_face_mesh = mp.solutions.face_mesh
-    
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     image_cv = cv2.imdecode(file_bytes, 1)
     image_cv = resize_image(image_cv) 
@@ -174,30 +101,20 @@ def analyze_face(uploaded_file, stylist_persona):
     with mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1) as face_mesh:
         results = face_mesh.process(image_rgb)
         if not results.multi_face_landmarks:
-            return None, None, "⚠️ No face detected. Please try a clearer photo."
-            
+            return None, None, "⚠️ No face detected."
         landmarks = results.multi_face_landmarks[0].landmark
         face_len = calculate_distance(landmarks[10], landmarks[152], w, h)
         face_width = calculate_distance(landmarks[234], landmarks[454], w, h)
         ratio = face_len / face_width
 
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        s_name = stylist_persona['name']
-        s_role = stylist_persona['role']
-        s_style = stylist_persona['style']
-        s_tone = stylist_persona['tone']
-
-        try:
-            raw_prompt = st.secrets["SYSTEM_PROMPT"]
-        except KeyError:
-            return None, None, "🚨 Error: SYSTEM_PROMPT missing in Secrets."
-
-        prompt = raw_prompt.format(
-            s_name=s_name,
-            s_role=s_role,
-            s_style=s_style,
-            s_tone=s_tone,
+    
+        prompt = SYSTEM_PROMPT_TEMPLATE.format(
+            s_name=stylist_persona['name'],
+            s_role=stylist_persona['role'],
+            s_style=stylist_persona['style'],
+            s_tone=stylist_persona['tone'],
             ratio=f"{ratio:.2f}"
         )
         
@@ -211,12 +128,12 @@ with st.sidebar:
     st.title("💎 STYLIQ")
     st.markdown("<p style='font-size: 10px; color: #888; letter-spacing: 3px; text-transform: uppercase;'>Intelligent Aesthetics</p>", unsafe_allow_html=True)
     st.markdown("---")
-    
     st.markdown("### 🧬 STYLIQ LAB")
-    st.info("Virtual Try-On Module")
-    replicate_api = st.text_input("API Key (Optional)", type="password", placeholder="Enter key to unlock...")
-    if not replicate_api:
-        st.caption("Running in **Simulation Mode** (Free)")
+    
+    if "REPLICATE_API_TOKEN" in st.secrets:
+        st.success("🔌 AI Engine: Online")
+    else:
+        st.warning("🔌 AI Engine: Offline")
 
 st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>STYLIQ</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #666; font-family: Inter; letter-spacing: 4px; font-size: 12px; margin-bottom: 50px;'>THE ALGORITHM OF BEAUTY</p>", unsafe_allow_html=True)
@@ -230,30 +147,52 @@ with st.container():
     with col1:
         st.markdown("### 01. DATA SOURCE")
         
-        with st.expander("📸 **READ ME: How to get the best results**", expanded=True):
-            st.markdown("""
-            **For the most accurate analysis, please upload:**
-            * ✅ **Front-facing**: Look directly at the camera.
-            * ✅ **Good Lighting**: Ensure your face is evenly lit.
-            * ✅ **No Obstructions**: Remove sunglasses.
-            
-            **What you will receive:**
-            * 🧬 **4D Face Report**: Face Shape, Hair Type, Color Analysis, and Vibe.
-            * 💇‍♀️ **Expert Advice**: A personalized hairstyle recommendation.
-            * 🖼️ **Visual Preview**: A simulation of the look.
-            """)
+        st.markdown("""
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
+                <div style="font-size: 20px;">📸</div>
+                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">FRONT FACING</div>
+            </div>
+            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
+                <div style="font-size: 20px;">💡</div>
+                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">GOOD LIGHT</div>
+            </div>
+            <div style="flex: 1; background: #F8F9FA; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #E9ECEF;">
+                <div style="font-size: 20px;">🔒</div>
+                <div style="font-weight: 600; font-size: 11px; margin-top: 5px; letter-spacing: 0.5px;">PRIVATE</div>
+            </div>
+        </div>
+
+        <div style="background: #FFF; border: 1px dashed #DDD; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">INCLUDED SERVICES</div>
+            <div style="display: flex; justify-content: center; gap: 20px; font-size: 12px; font-weight: 500; color: #333;">
+                <span>🧬 4D Face Report</span>
+                <span style="color: #DDD;">|</span>
+                <span>💇‍♀️ Stylist Advice</span>
+                <span style="color: #DDD;">|</span>
+                <span>🖼️ AI Try-On</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander("🛡️ Privacy Policy", expanded=False):
+             st.markdown("""
+             <div style="font-size: 12px; color: #666;">
+             Your photos are deleted immediately after analysis. No storage, no training.
+             </div>
+             """, unsafe_allow_html=True)
             
         uploaded_file = st.file_uploader("Upload Portrait", type=['jpg', 'jpeg', 'png'])
         
         if uploaded_file:
             st.markdown("""<style>img {filter: grayscale(0%); transition: all 0.5s;} img:hover {filter: grayscale(0%);}</style>""", unsafe_allow_html=True)
-            st.image(uploaded_file, use_container_width=True)
-            
+            st.image(uploaded_file, use_column_width=True)
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("✨ INITIALIZE ANALYSIS", type="primary", use_container_width=True):
+            
+            if st.button("✨ INITIALIZE ANALYSIS", type="primary"):
                 selected_stylist = random.choice(STYLISTS)
                 st.session_state['current_stylist'] = selected_stylist
-                with st.spinner(f"💎 {selected_stylist['name']} is connecting with your vibe..."):
+                with st.spinner(f"💎 {selected_stylist['name']} is connecting..."):
                     uploaded_file.seek(0)
                     img, report, error = analyze_face(uploaded_file, selected_stylist)
                     st.session_state['result'] = (report, error)
@@ -264,14 +203,12 @@ with st.container():
         
         if stylist and 'result' in st.session_state:
             report, error = st.session_state['result']
-            
             if error:
                 st.error(error)
             else:
                 s_name = stylist['name']
                 s_role = stylist['role'].upper()
                 s_avatar = stylist['avatar']
-                s_style = stylist['style']
                 
                 st.markdown(f"""
                 <div class="stylist-card">
@@ -282,72 +219,63 @@ with st.container():
                         </div>
                         <div style="font-size: 32px;">{s_avatar}</div>
                     </div>
-                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #EEE;">
-                        <p style="font-family: 'Inter'; font-size: 14px; color: #333;">"{s_style}"</p>
-                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 hairstyle_name = "New Hairstyle"
-                
                 for line in report.split('\n'):
                     if "HAIRSTYLE_NAME:" in line:
                         extracted = line.split(":")[1].strip()
                         if extracted and "[" not in extracted:
                             hairstyle_name = extracted
-                
                 if hairstyle_name == "New Hairstyle":
                     match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
                     if match:
                         hairstyle_name = match.group(1).strip()
 
                 tab1, tab2, tab3 = st.tabs(["ANALYSIS", "MOODBOARD", "TRY-ON"])
-                
                 with tab1:
                     clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
                     st.markdown(clean_report)
-                    
                 with tab2:
                     st.markdown(f"<h3 style='color: #000;'>{hairstyle_name}</h3>", unsafe_allow_html=True)
                     st.caption("Global references.")
                     q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
                     c1, c2 = st.columns(2)
-                    
-                    with c1: st.link_button("Pinterest", f"https://www.pinterest.com/search/pins/?q={q}", use_container_width=True)
-                    with c2: st.link_button("Google", f"https://www.google.com/search?tbm=isch&q={q}", use_container_width=True)
+                    with c1: st.link_button("Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
+                    with c2: st.link_button("Google", f"https://www.google.com/search?tbm=isch&q={q}")
                 
                 with tab3:
                     st.markdown(f"### Virtual Lab: **{hairstyle_name}**")
-                    st.caption("Generates a preview using STYLIQ Diffusion Engine.")
+                    st.caption("Generates a realistic preview using InstantID technology.")
                     
-                    if st.button("🧬 GENERATE PREVIEW", type="secondary", use_container_width=True):
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
-                        steps = [
-                            "🔌 Connecting to Neural Engine...",
-                            "📐 Mapping Facial Geometry...",
-                            "🎨 Synthesizing Texture...",
-                            "✨ Rendering Final Polish..."
-                        ]
-                        
-                        for i in range(100):
-                            time.sleep(0.02) 
-                            progress_bar.progress(i + 1)
-                            if i < 25: status_text.text(steps[0])
-                            elif i < 50: status_text.text(steps[1])
-                            elif i < 75: status_text.text(steps[2])
-                            else: status_text.text(steps[3])
-                        
-                        status_text.text("✅ Computation Complete")
-                        
-                        if replicate_api:
-                            st.warning("API Key detected! (Real logic placeholder)")
+                    if st.button("🧬 GENERATE PREVIEW (BETA)", type="secondary"):
+                        if "REPLICATE_API_TOKEN" in st.secrets:
+                            try:
+                                with st.spinner("🔌 Connecting to Replicate GPU Cluster..."):
+                                    with open("temp_upload.jpg", "wb") as f:
+                                        uploaded_file.seek(0)
+                                        f.write(uploaded_file.read())
+                                    
+                                    # InstantID Model ID (Fixed Version)
+                                    model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
+                                    
+                                    output = replicate.run(
+                                        model_id,
+                                        input={
+                                            "image": open("temp_upload.jpg", "rb"),
+                                            "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
+                                            "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
+                                            "ip_adapter_scale": 0.8,
+                                            "controlnet_conditioning_scale": 0.8,
+                                            "num_inference_steps": 30,
+                                            "guidance_scale": 5
+                                        }
+                                    )
+                                    if output:
+                                        st.image(output[0], caption=f"AI Generated: {hairstyle_name}", use_column_width=True)
+                                        st.success("✅ Generation Complete!")
+                            except Exception as e:
+                                st.error(f"⚠️ Replicate Error: {e}")
                         else:
-                            if os.path.exists("demo.jpg"):
-                                st.image("demo.jpg", caption=f"STYLIQ Preview: {hairstyle_name}", use_container_width=True)
-                            else:
-                                st.warning("⚠️ 'demo.jpg' not found. Please add a demo image.")
-                                st.image("https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&q=80", caption="Fallback", use_container_width=True)
-                            
-                            st.info("ℹ️ Running in **Simulation Mode**.")
+                            st.warning("⚠️ Running in Safe Mode (No Replicate Token Found).")
