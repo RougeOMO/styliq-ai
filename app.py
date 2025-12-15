@@ -13,7 +13,7 @@ import urllib.parse
 import io
 
 st.set_page_config(
-    page_title="STYLIQ | AI Image Consultant",
+    page_title="STYLIQ 3.0 | AI Consultant",
     page_icon="💎",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -177,36 +177,23 @@ def analyze_face(image_bytes, stylist_persona):
                 generation_config=genai.types.GenerationConfig(temperature=0.1)
             )
         except:
-            try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                response = model.generate_content(
-                    [SYSTEM_PROMPT_TEMPLATE.format(
-                        s_name=stylist_persona['name'],
-                        s_role=stylist_persona['role'],
-                        s_style=stylist_persona['style'],
-                        s_tone=stylist_persona['tone'],
-                        ratio=f"{ratio:.2f}"
-                    ), image_pil], 
-                    generation_config=genai.types.GenerationConfig(temperature=0.1)
-                )
-            except:
-                 model = genai.GenerativeModel('gemini-pro-vision')
-                 response = model.generate_content(
-                    [SYSTEM_PROMPT_TEMPLATE.format(
-                        s_name=stylist_persona['name'],
-                        s_role=stylist_persona['role'],
-                        s_style=stylist_persona['style'],
-                        s_tone=stylist_persona['tone'],
-                        ratio=f"{ratio:.2f}"
-                    ), image_pil],
-                    generation_config=genai.types.GenerationConfig(temperature=0.1)
-                )
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(
+                [SYSTEM_PROMPT_TEMPLATE.format(
+                    s_name=stylist_persona['name'],
+                    s_role=stylist_persona['role'],
+                    s_style=stylist_persona['style'],
+                    s_tone=stylist_persona['tone'],
+                    ratio=f"{ratio:.2f}"
+                ), image_pil], 
+                generation_config=genai.types.GenerationConfig(temperature=0.1)
+            )
 
         return image_pil, response.text, None
 
 st.markdown("""
     <div class="main-header">
-        <div class="main-title" style="font-family: 'Cinzel', serif;">STYLIQ</div>
+        <div class="main-title" style="font-family: 'Cinzel', serif;">STYLIQ 3.0</div>
         <div class="sub-title">Intelligent Aesthetics</div>
     </div>
 """, unsafe_allow_html=True)
@@ -265,74 +252,4 @@ with col2:
             st.markdown(f"""
             <div style="background: #F8F9FA; padding: 15px; border-left: 3px solid #000; margin-bottom: 20px;">
                 <div style="font-family: 'Cinzel'; font-weight: 700;">DIRECTOR: {s_name}</div>
-                <div style="font-size: 11px; color: #666; letter-spacing: 1px;">{s_role}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            hairstyle_name = "New Hairstyle"
-            for line in report.split('\n'):
-                if "HAIRSTYLE_NAME:" in line:
-                    extracted = line.split(":")[1].strip()
-                    if extracted and "[" not in extracted:
-                        hairstyle_name = extracted
-            if hairstyle_name == "New Hairstyle":
-                match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
-                if match:
-                    hairstyle_name = match.group(1).strip()
-
-            tab1, tab2, tab3 = st.tabs(["🧬 REPORT", "🖼️ REFERENCES", "✨ AI TRY-ON"])
-            
-            with tab1:
-                clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
-                st.markdown(clean_report)
-            
-            with tab2:
-                st.markdown(f"**Recommended Style:** {hairstyle_name}")
-                q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
-                c1, c2 = st.columns(2)
-                with c1: st.link_button("Search Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
-                with c2: st.link_button("Search Google", f"https://www.google.com/search?tbm=isch&q={q}")
-            
-            with tab3:
-                st.info(f"Generating preview for: **{hairstyle_name}**")
-                
-                if st.session_state.get('source_img_bytes') is None:
-                    st.warning("⚠️ Image session expired. Please re-upload.")
-                else:
-                    if st.button("Generate Visualization"):
-                        if "REPLICATE_API_TOKEN" in st.secrets:
-                            try:
-                                with st.spinner("Creating your new look..."):
-                                    bytes_io = io.BytesIO(st.session_state['source_img_bytes'])
-                                    
-                                    model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
-                                    output = replicate.run(
-                                        model_id,
-                                        input={
-                                            "image": bytes_io,
-                                            "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
-                                            "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
-                                            "ip_adapter_scale": 0.8,
-                                            "controlnet_conditioning_scale": 0.8,
-                                            "num_inference_steps": 30,
-                                            "guidance_scale": 5
-                                        }
-                                    )
-                                    if output:
-                                        st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_column_width=True)
-                            except Exception as e:
-                                st.error(f"Error: {e}")
-                        else:
-                            st.warning("AI Generation is disabled (Missing Key).")
-
-    else:
-        st.markdown("""
-        <div class="empty-state">
-            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
-            <div style="font-weight: 600; color: #333;">Awaiting Portrait</div>
-            <div style="font-size: 12px; margin-top: 5px;">
-                Upload your photo on the left to unlock:<br>
-                Face Shape Analysis • Personalized Cut • AI Visuals
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+                <div style="font-size: 11px; color: #66
