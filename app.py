@@ -156,7 +156,7 @@ def analyze_face(uploaded_file, stylist_persona):
         face_width = calculate_distance(landmarks[234], landmarks[454], w, h)
         ratio = face_len / face_width
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         
         prompt = SYSTEM_PROMPT_TEMPLATE.format(
             s_name=stylist_persona['name'],
@@ -297,3 +297,4 @@ with col2:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
