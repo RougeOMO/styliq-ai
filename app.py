@@ -10,24 +10,21 @@ import os
 import re 
 import replicate
 
-
 st.set_page_config(
     page_title="STYLIQ | AI Image Consultant", 
     page_icon="💎", 
     layout="wide",
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="collapsed"
 )
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
     
-    
     html, body, [class*="css"] {font-family: 'Inter', sans-serif; color: #1a1a1a !important;}
     h1, h2, h3 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000000 !important;}
     .stApp {background-color: #FFFFFF !important;}
     
-   
     .main-header {
         text-align: center; 
         padding-bottom: 40px;
@@ -37,7 +34,6 @@ st.markdown("""
     .main-title { font-size: 60px; margin-bottom: 0px; letter-spacing: -1px; }
     .sub-title { font-family: 'Inter'; font-size: 12px; color: #666; letter-spacing: 4px; text-transform: uppercase; margin-top: 10px;}
 
- 
     .section-header {
         font-family: 'Inter'; 
         font-size: 14px; 
@@ -49,7 +45,6 @@ st.markdown("""
         border-left: 3px solid #000;
         padding-left: 15px;
     }
-
 
     .upload-guide {
         background-color: #FAFAFA;
@@ -63,7 +58,6 @@ st.markdown("""
     }
     .upload-guide strong { color: #000; font-weight: 600; }
 
-    
     div.stButton > button[kind="primary"] {
         background-color: #000000 !important;
         border: 1px solid #000000 !important;
@@ -88,7 +82,6 @@ st.markdown("""
     }
     div.stButton > button[kind="primary"]:hover p { color: #000000 !important; }
 
-  
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -98,13 +91,11 @@ st.markdown("""
         color: #999;
     }
     
-  
     [data-testid="stFileUploader"] {padding: 0px;}
     [data-testid="stFileUploader"] section {padding: 30px; background-color: #FFF; border: 1px dashed #CCC;}
     
     </style>
 """, unsafe_allow_html=True)
-
 
 try:
     if "API_KEY" in st.secrets:
@@ -126,7 +117,6 @@ try:
 except FileNotFoundError:
     st.error("🚨 Secrets not found.")
     st.stop()
-
 
 STYLISTS = [
     {"name": "ALEX", "role": "Classic Director", "style": "Timeless Precision", "tone": "Sophisticated, Polite", "avatar": "🏛️"},
@@ -182,7 +172,6 @@ def analyze_face(uploaded_file, stylist_persona):
         )
         return image_pil, response.text, None
 
-
 st.markdown("""
     <div class="main-header">
         <div class="main-title" style="font-family: 'Cinzel', serif;">STYLIQ</div>
@@ -193,14 +182,10 @@ st.markdown("""
 if 'current_stylist' not in st.session_state:
     st.session_state['current_stylist'] = None
 
+col1, col2 = st.columns([4, 6], gap="large")
 
-col1, col2 = st.columns([4, 6], gap="large") 
-
--
 with col1:
-    
     st.markdown('<div class="section-header">Step 1: Upload Portrait</div>', unsafe_allow_html=True)
-    
     
     st.markdown("""
     <div class="upload-guide">
@@ -228,19 +213,16 @@ with col1:
                 img, report, error = analyze_face(uploaded_file, selected_stylist)
                 st.session_state['result'] = (report, error)
 
-
 with col2:
     st.markdown('<div class="section-header">Step 2: Consultation Report</div>', unsafe_allow_html=True)
     
     stylist = st.session_state['current_stylist']
     
     if stylist and 'result' in st.session_state:
-       
         report, error = st.session_state['result']
         if error:
             st.error(error)
         else:
-           
             s_name = stylist['name']
             s_role = stylist['role'].upper()
             st.markdown(f"""
@@ -261,7 +243,6 @@ with col2:
                 if match:
                     hairstyle_name = match.group(1).strip()
 
-           
             tab1, tab2, tab3 = st.tabs(["🧬 REPORT", "🖼️ REFERENCES", "✨ AI TRY-ON"])
             
             with tab1:
@@ -306,7 +287,6 @@ with col2:
                         st.warning("AI Generation is disabled (Missing Key).")
 
     else:
-     
         st.markdown("""
         <div class="empty-state">
             <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
