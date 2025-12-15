@@ -14,7 +14,7 @@ import io
 from pathlib import Path
 
 st.set_page_config(
-    page_title="STYLIQ | AI Consultant", 
+    page_title="STYLIQ | Cloud V31", 
     page_icon="💎", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -23,17 +23,15 @@ st.set_page_config(
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
-    
     html, body, [class*="css"] {font-family: 'Inter', sans-serif; color: #1a1a1a !important;}
     h1, h2, h3 {font-family: 'Cinzel', serif !important; font-weight: 700 !important; color: #000000 !important;}
     .stApp {background-color: #FFFFFF !important;}
     
-    .main-header {text-align: center; padding-bottom: 40px; border-bottom: 1px solid #F0F0F0; margin-bottom: 40px;}
+    .main-header {text-align: center; padding-bottom: 20px; border-bottom: 1px solid #F0F0F0; margin-bottom: 40px;}
     .main-title {font-size: 60px; margin-bottom: 0px; letter-spacing: -1px;}
     .sub-title {font-family: 'Inter'; font-size: 12px; color: #666; letter-spacing: 4px; text-transform: uppercase; margin-top: 10px;}
     
     .section-header {font-family: 'Inter'; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; color: #333; border-left: 3px solid #000; padding-left: 15px;}
-    
     .upload-guide {background-color: #FAFAFA; padding: 20px; border-radius: 8px; border: 1px solid #EEE; margin-bottom: 20px; font-size: 13px; color: #555; line-height: 1.6;}
     
     div.stButton > button[kind="primary"] {background-color: #000 !important; border: 1px solid #000; border-radius: 0px; padding: 16px 40px; width: 100%; transition: all 0.3s ease;}
@@ -42,7 +40,6 @@ st.markdown("""
     div.stButton > button[kind="primary"]:hover p {color: #000 !important;}
     
     .empty-state {text-align: center; padding: 60px 20px; background: #FAFAFA; border-radius: 8px; border: 1px dashed #DDD; color: #999;}
-    
     [data-testid="stFileUploader"] {padding: 0px;}
     [data-testid="stFileUploader"] section {padding: 30px; background-color: #FFF; border: 1px dashed #CCC;}
     </style>
@@ -50,227 +47,147 @@ st.markdown("""
 
 try:
     if "API_KEY" in st.secrets:
-        API_KEY = st.secrets["API_KEY"]
-        genai.configure(api_key=API_KEY)
+        genai.configure(api_key=st.secrets["API_KEY"])
     else:
-        st.error("🚨 Error: API_KEY missing.")
+        st.error("🚨 Missing API_KEY")
         st.stop()
         
     if "REPLICATE_API_TOKEN" in st.secrets:
         os.environ["REPLICATE_API_TOKEN"] = st.secrets["REPLICATE_API_TOKEN"]
-
+    
     if "SYSTEM_PROMPT" in st.secrets:
         SYSTEM_PROMPT_TEMPLATE = st.secrets["SYSTEM_PROMPT"]
     else:
-        st.error("🚨 Error: SYSTEM_PROMPT missing.")
+        st.error("🚨 Missing SYSTEM_PROMPT")
         st.stop()
-except FileNotFoundError:
-    st.error("🚨 Secrets not found.")
+except Exception as e:
+    st.error(f"🚨 Secrets Config Error: {e}")
     st.stop()
 
 STYLISTS = [
-    {"name": "ALEX", "role": "Classic Director", "style": "Timeless Precision", "tone": "Sophisticated, Polite", "avatar": "🏛️"},
-    {"name": "JORDAN", "role": "Texture Specialist", "style": "Urban Dynamics", "tone": "Energetic, Modern", "avatar": "⚡"},
-    {"name": "CASEY", "role": "Geometric Architect", "style": "Structural Balance", "tone": "Analytical, Sharp", "avatar": "📐"},
-    {"name": "TAYLOR", "role": "Natural Consultant", "style": "Organic Flow", "tone": "Warm, Holistic", "avatar": "🌿"}
+    {"name": "ALEX", "role": "Classic Director", "style": "Timeless", "tone": "Sophisticated", "avatar": "🏛️"},
+    {"name": "JORDAN", "role": "Texture Specialist", "style": "Urban", "tone": "Modern", "avatar": "⚡"},
+    {"name": "CASEY", "role": "Geometric Architect", "style": "Structural", "tone": "Sharp", "avatar": "📐"},
+    {"name": "TAYLOR", "role": "Natural Consultant", "style": "Organic", "tone": "Holistic", "avatar": "🌿"}
 ]
 
-def resize_image(image, max_width=1024):
-    h, w = image.shape[:2]
-    if w > max_width:
-        ratio = max_width / w
-        new_h = int(h * ratio)
-        image = cv2.resize(image, (max_width, new_h))
-    return image
-
-def calculate_distance(p1, p2, w, h):
-    x1, y1 = p1.x * w, p1.y * h
-    x2, y2 = p2.x * w, p2.y * h
-    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-def analyze_face(image_bytes, stylist_persona):
-    if image_bytes is None:
-        return None, None, "No image data found."
-
-    mp_face_mesh = mp.solutions.face_mesh
-    file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
-    image_cv = cv2.imdecode(file_bytes, 1)
-    if image_cv is None:
-        return None, None, "Could not decode image."
+def analyze_logic(image_bytes, stylist):
+    try:
+        file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
+        image_cv = cv2.imdecode(file_bytes, 1)
+        if image_cv is None: return None, "Image Decode Failed"
         
-    image_cv = resize_image(image_cv) 
-    image_rgb = cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB)
-    image_pil = Image.fromarray(image_rgb)
-    h, w, c = image_cv.shape
-    
-    with mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1) as face_mesh:
-        results = face_mesh.process(image_rgb)
-        if not results.multi_face_landmarks:
-            return None, None, "⚠️ No face detected."
-        landmarks = results.multi_face_landmarks[0].landmark
-        face_len = calculate_distance(landmarks[10], landmarks[152], w, h)
-        face_width = calculate_distance(landmarks[234], landmarks[454], w, h)
-        ratio = face_len / face_width
+        h, w, c = image_cv.shape
+        mp_face = mp.solutions.face_mesh
+        with mp_face.FaceMesh(static_image_mode=True, max_num_faces=1) as face_mesh:
+            results = face_mesh.process(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
+            if not results.multi_face_landmarks: return None, "No Face Detected"
+            landmarks = results.multi_face_landmarks[0].landmark
+            ratio = (landmarks[152].y - landmarks[10].y) * h / ((landmarks[454].x - landmarks[234].x) * w)
 
+        image_pil = Image.fromarray(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
+        
         try:
-            model = genai.GenerativeModel('gemini-2.5-flash-lite')
-            response = model.generate_content(
-                [SYSTEM_PROMPT_TEMPLATE.format(
-                    s_name=stylist_persona['name'],
-                    s_role=stylist_persona['role'],
-                    s_style=stylist_persona['style'],
-                    s_tone=stylist_persona['tone'],
-                    ratio=f"{ratio:.2f}"
-                ), image_pil], 
-                generation_config=genai.types.GenerationConfig(temperature=0.1)
-            )
-        except:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(
-                [SYSTEM_PROMPT_TEMPLATE.format(
-                    s_name=stylist_persona['name'],
-                    s_role=stylist_persona['role'],
-                    s_style=stylist_persona['style'],
-                    s_tone=stylist_persona['tone'],
-                    ratio=f"{ratio:.2f}"
-                ), image_pil], 
-                generation_config=genai.types.GenerationConfig(temperature=0.1)
-            )
-
-        return image_pil, response.text, None
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            response = model.generate_content([SYSTEM_PROMPT_TEMPLATE.format(s_name=stylist['name'], s_role=stylist['role'], s_style=stylist['style'], s_tone=stylist['tone'], ratio=f"{ratio:.2f}"), image_pil])
+            return response.text, None
+        except Exception as e:
+            return None, f"AI Error: {str(e)}"
+    except Exception as e:
+        return None, f"Analysis Error: {str(e)}"
 
 st.markdown("""
     <div class="main-header">
-        <div class="main-title" style="font-family: 'Cinzel', serif;">STYLIQ V21</div>
+        <div class="main-title">STYLIQ</div>
         <div class="sub-title">Intelligent Aesthetics</div>
     </div>
 """, unsafe_allow_html=True)
 
-if 'current_stylist' not in st.session_state: st.session_state['current_stylist'] = None
-if 'source_img_bytes' not in st.session_state: st.session_state['source_img_bytes'] = None
-if 'result' not in st.session_state: st.session_state['result'] = None
+if 'user_img_bytes' not in st.session_state: st.session_state['user_img_bytes'] = None
+if 'analysis_data' not in st.session_state: st.session_state['analysis_data'] = None
+if 'active_stylist' not in st.session_state: st.session_state['active_stylist'] = None
 
 col1, col2 = st.columns([4, 6], gap="large")
 
 with col1:
-    st.markdown('<div class="section-header">Step 1: Upload Portrait</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="upload-guide">
-        To ensure accurate analysis, please upload a clear photo:<br><br>
-        • <strong>Look Straight:</strong> Face the camera directly.<br>
-        • <strong>Even Lighting:</strong> Avoid strong shadows.<br>
-        • <strong>No Accessories:</strong> Remove sunglasses.<br>
-        <br>
-        <span style="font-size: 10px; color: #999;">🔒 Data is processed privately and deleted instantly.</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Step 1: Upload</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-guide">Please upload a front-facing photo. Data is processed securely.</div>', unsafe_allow_html=True)
     
-    uploaded_file = st.file_uploader("Choose an image...", type=['jpg', 'jpeg', 'png'], label_visibility="collapsed")
+    uploaded = st.file_uploader("Upload", type=['jpg', 'png', 'jpeg'], label_visibility="collapsed")
     
-    if uploaded_file:
-        st.markdown("---")
-        st.image(uploaded_file, caption="Source Image", use_container_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+    if uploaded:
+        st.image(uploaded, use_container_width=True)
         
         if st.button("✨ START ANALYSIS", type="primary"):
-            selected_stylist = random.choice(STYLISTS)
-            st.session_state['current_stylist'] = selected_stylist
+            st.session_state['user_img_bytes'] = uploaded.getvalue()
             
-            img_bytes = uploaded_file.getvalue()
-            st.session_state['source_img_bytes'] = img_bytes
+            stylist = random.choice(STYLISTS)
+            st.session_state['active_stylist'] = stylist
             
-            with st.spinner(f"💎 Analyzing facial geometry..."):
-                img, report, error = analyze_face(img_bytes, selected_stylist)
-                st.session_state['result'] = (report, error)
+            with st.spinner("Analyzing..."):
+                rep, err = analyze_logic(st.session_state['user_img_bytes'], stylist)
+                st.session_state['analysis_data'] = (rep, err)
 
 with col2:
-    st.markdown('<div class="section-header">Step 2: Consultation Report</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Step 2: Results</div>', unsafe_allow_html=True)
     
-    stylist = st.session_state['current_stylist']
-    report_data = st.session_state['result']
+    res = st.session_state['analysis_data']
+    stylist = st.session_state['active_stylist']
     
-    if stylist and report_data:
-        report, error = report_data
+    if res and stylist:
+        rep_text, err_text = res
         
-        if error:
-            st.error(error)
+        if err_text:
+            st.error(err_text)
         else:
-            s_name = stylist['name']
-            s_role = stylist['role'].upper()
+            style_name = "New Look"
+            match = re.search(r"HAIRSTYLE_NAME:\s*(.*)", rep_text)
+            if match: style_name = match.group(1).strip()
             
             st.markdown(f"""
-            <div style="background: #F8F9FA; padding: 15px; border-left: 3px solid #000; margin-bottom: 20px;">
-                <div style="font-family: 'Cinzel'; font-weight: 700;">DIRECTOR: {s_name}</div>
-                <div style="font-size: 11px; color: #666; letter-spacing: 1px;">{s_role}</div>
+            <div style="background:#F8F9FA; padding:15px; border-left:3px solid #000; margin-bottom:20px;">
+                <b>DIRECTOR: {stylist['name']}</b><br><span style="font-size:12px; color:#666;">{stylist['role']}</span>
             </div>
             """, unsafe_allow_html=True)
-
-            hairstyle_name = "New Hairstyle"
-            for line in report.split('\n'):
-                if "HAIRSTYLE_NAME:" in line:
-                    extracted = line.split(":")[1].strip()
-                    if extracted and "[" not in extracted:
-                        hairstyle_name = extracted
-            if hairstyle_name == "New Hairstyle":
-                match = re.search(r"### 3\. Recommendation\s*\n\s*\*\*(.*?)\*\*", report)
-                if match:
-                    hairstyle_name = match.group(1).strip()
-
-            tab1, tab2, tab3 = st.tabs(["🧬 REPORT", "🖼️ REFERENCES", "✨ AI TRY-ON"])
             
-            with tab1:
-                clean_report = report.replace(f"HAIRSTYLE_NAME: {hairstyle_name}", "").strip()
-                st.markdown(clean_report)
+            t1, t2, t3 = st.tabs(["REPORT", "REF", "TRY-ON"])
             
-            with tab2:
-                st.markdown(f"**Recommended Style:** {hairstyle_name}")
-                q = urllib.parse.quote(hairstyle_name + " hairstyle reference")
-                c1, c2 = st.columns(2)
-                with c1: st.link_button("Search Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
-                with c2: st.link_button("Search Google", f"https://www.google.com/search?tbm=isch&q={q}")
-            
-            with tab3:
-                st.info(f"Generating preview for: **{hairstyle_name}**")
+            with t1:
+                st.markdown(rep_text.replace(f"HAIRSTYLE_NAME: {style_name}", ""))
                 
-                if st.session_state.get('source_img_bytes') is None:
-                    st.warning("⚠️ Session expired. Please upload again.")
+            with t2:
+                q = urllib.parse.quote(style_name + " hairstyle")
+                st.link_button("Search Pinterest", f"https://www.pinterest.com/search/pins/?q={q}")
+                
+            with t3:
+                st.info(f"Visualizing: **{style_name}**")
+                
+                if st.session_state['user_img_bytes'] is None:
+                    st.warning("⚠️ Please re-upload your photo.")
                 else:
                     if st.button("Generate Visualization"):
-                        if "REPLICATE_API_TOKEN" in st.secrets:
-                            try:
-                                with st.spinner("Creating your new look..."):
-                                    temp_path = Path("temp_upload.jpg")
-                                    temp_path.write_bytes(st.session_state['source_img_bytes'])
-                                    
-                                    if temp_path.exists():
-                                        with open(temp_path, "rb") as file_handle:
-                                            output = replicate.run(
-                                                "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420",
-                                                input={
-                                                    "image": file_handle,
-                                                    "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting",
-                                                    "negative_prompt": "bald, distorted, bad eyes, low quality, illustration",
-                                                    "ip_adapter_scale": 0.8,
-                                                    "controlnet_conditioning_scale": 0.8,
-                                                    "num_inference_steps": 30,
-                                                    "guidance_scale": 5
-                                                }
-                                            )
-                                        if output:
-                                            st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_container_width=True)
-                            except Exception as e:
-                                st.error(f"Error: {e}")
-                        else:
-                            st.warning("AI Generation is disabled (Missing Key).")
-
+                        try:
+                            with st.spinner("Rendering (this takes ~10s)..."):
+                                temp_file = Path("temp_process.jpg")
+                                temp_file.write_bytes(st.session_state['user_img_bytes'])
+                                
+                                if temp_file.exists():
+                                    with open(temp_file, "rb") as f_handle:
+                                        output = replicate.run(
+                                            "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420",
+                                            input={
+                                                "image": f_handle,
+                                                "prompt": f"portrait of a person, {style_name} hairstyle, photorealistic, 8k",
+                                                "negative_prompt": "bald, distorted, bad eyes, low quality, illustration",
+                                                "ip_adapter_scale": 0.8,
+                                                "controlnet_conditioning_scale": 0.8,
+                                                "num_inference_steps": 30,
+                                                "guidance_scale": 5
+                                            }
+                                        )
+                                    if output:
+                                        st.image(output[0], caption="AI Prediction", use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Generation Error: {e}")
     else:
-        st.markdown("""
-        <div class="empty-state">
-            <div style="font-size: 40px; margin-bottom: 10px;">🔮</div>
-            <div style="font-weight: 600; color: #333;">Awaiting Portrait</div>
-            <div style="font-size: 12px; margin-top: 5px;">
-                Upload your photo on the left to unlock:<br>
-                Face Shape Analysis • Personalized Cut • AI Visuals
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="empty-state">🔮<br>Awaiting Portrait</div>', unsafe_allow_html=True)
