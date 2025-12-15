@@ -14,7 +14,7 @@ import io
 from pathlib import Path
 
 st.set_page_config(
-    page_title="STYLIQ 888| AI Consultant", 
+    page_title="STYLIQ | AI Consultant", 
     page_icon="💎", 
     layout="wide",
     initial_sidebar_state="collapsed"
