@@ -9,6 +9,7 @@ import random
 import os 
 import re 
 import replicate
+import urllib.parse
 
 st.set_page_config(
     page_title="STYLIQ | AI Image Consultant", 
@@ -297,4 +298,5 @@ with col2:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
 
