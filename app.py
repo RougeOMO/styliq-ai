@@ -6,13 +6,15 @@ import numpy as np
 from PIL import Image
 import math
 import random
-import os 
-import re 
+import os
+import re
 import replicate
+import urllib.parse
+import io
 
 st.set_page_config(
-    page_title="STYLIQ | AI Image Consultant", 
-    page_icon="💎", 
+    page_title="STYLIQ | AI Image Consultant",
+    page_icon="💎",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -118,7 +120,6 @@ except FileNotFoundError:
     st.error("🚨 Secrets not found.")
     st.stop()
 
-
 STYLISTS = [
     {"name": "ALEX", "role": "Classic Director", "style": "Timeless Precision", "tone": "Sophisticated, Polite", "avatar": "🏛️"},
     {"name": "JORDAN", "role": "Texture Specialist", "style": "Urban Dynamics", "tone": "Energetic, Modern", "avatar": "⚡"},
@@ -139,9 +140,9 @@ def calculate_distance(p1, p2, w, h):
     x2, y2 = p2.x * w, p2.y * h
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-def analyze_face(uploaded_file, stylist_persona):
+def analyze_face(image_bytes, stylist_persona):
     mp_face_mesh = mp.solutions.face_mesh
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+    file_bytes = np.asarray(bytearray(image_bytes), dtype=np.uint8)
     image_cv = cv2.imdecode(file_bytes, 1)
     image_cv = resize_image(image_cv) 
     image_rgb = cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB)
@@ -157,35 +158,20 @@ def analyze_face(uploaded_file, stylist_persona):
         face_width = calculate_distance(landmarks[234], landmarks[454], w, h)
         ratio = face_len / face_width
 
-        # ✅ FIX: Switched to the most stable model 'gemini-pro' to resolve 404 error
         model = genai.GenerativeModel('gemini-2.5-flash-lite')
         
-        prompt = SYSTEM_PROMPT_TEMPLATE.format(
-            s_name=stylist_persona['name'],
-            s_role=stylist_persona['role'],
-            s_style=stylist_persona['style'],
-            s_tone=stylist_persona['tone'],
-            ratio=f"{ratio:.2f}"
+        response = model.generate_content(
+            [SYSTEM_PROMPT_TEMPLATE.format(
+                s_name=stylist_persona['name'],
+                s_role=stylist_persona['role'],
+                s_style=stylist_persona['style'],
+                s_tone=stylist_persona['tone'],
+                ratio=f"{ratio:.2f}"
+            ), image_pil], 
+            generation_config=genai.types.GenerationConfig(temperature=0.1)
         )
-        
-  
-        try:
-            
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            response = model.generate_content(
-                [prompt, image_pil], 
-                generation_config=genai.types.GenerationConfig(temperature=0.1)
-            )
-        except:
-            
-            model = genai.GenerativeModel('gemini-pro-vision')
-            response = model.generate_content(
-                [prompt, image_pil], 
-                generation_config=genai.types.GenerationConfig(temperature=0.1)
-            )
 
         return image_pil, response.text, None
-
 
 st.markdown("""
     <div class="main-header">
@@ -196,6 +182,8 @@ st.markdown("""
 
 if 'current_stylist' not in st.session_state:
     st.session_state['current_stylist'] = None
+if 'source_img_bytes' not in st.session_state:
+    st.session_state['source_img_bytes'] = None
 
 col1, col2 = st.columns([4, 6], gap="large")
 
@@ -224,8 +212,10 @@ with col1:
             selected_stylist = random.choice(STYLISTS)
             st.session_state['current_stylist'] = selected_stylist
             with st.spinner(f"💎 Analyzing facial geometry..."):
-                uploaded_file.seek(0)
-                img, report, error = analyze_face(uploaded_file, selected_stylist)
+                img_bytes = uploaded_file.getvalue()
+                st.session_state['source_img_bytes'] = img_bytes
+                
+                img, report, error = analyze_face(img_bytes, selected_stylist)
                 st.session_state['result'] = (report, error)
 
 with col2:
@@ -273,33 +263,35 @@ with col2:
             
             with tab3:
                 st.info(f"Generating preview for: **{hairstyle_name}**")
-                if st.button("Generate Visualization"):
-                    if "REPLICATE_API_TOKEN" in st.secrets:
-                        try:
-                            with st.spinner("Creating your new look..."):
-                                with open("temp_upload.jpg", "wb") as f:
-                                    uploaded_file.seek(0)
-                                    f.write(uploaded_file.read())
-                                
-                                model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
-                                output = replicate.run(
-                                    model_id,
-                                    input={
-                                        "image": open("temp_upload.jpg", "rb"),
-                                        "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
-                                        "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
-                                        "ip_adapter_scale": 0.8,
-                                        "controlnet_conditioning_scale": 0.8,
-                                        "num_inference_steps": 30,
-                                        "guidance_scale": 5
-                                    }
-                                )
-                                if output:
-                                    st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_column_width=True)
-                        except Exception as e:
-                            st.error(f"Error: {e}")
-                    else:
-                        st.warning("AI Generation is disabled (Missing Key).")
+                
+                if st.session_state['source_img_bytes'] is None:
+                    st.warning("⚠️ Image session expired. Please re-upload.")
+                else:
+                    if st.button("Generate Visualization"):
+                        if "REPLICATE_API_TOKEN" in st.secrets:
+                            try:
+                                with st.spinner("Creating your new look..."):
+                                    bytes_io = io.BytesIO(st.session_state['source_img_bytes'])
+                                    
+                                    model_id = "zedge/instantid:ba2d5293be8794a05841a6f6eed81e810340142c3c25fab4838ff2b5d9574420"
+                                    output = replicate.run(
+                                        model_id,
+                                        input={
+                                            "image": bytes_io,
+                                            "prompt": f"portrait of a person, {hairstyle_name} hairstyle, photorealistic, 8k, soft lighting, high quality",
+                                            "negative_prompt": "bald, distorted face, bad eyes, cartoon, low quality, ugly, messy, painting, drawing",
+                                            "ip_adapter_scale": 0.8,
+                                            "controlnet_conditioning_scale": 0.8,
+                                            "num_inference_steps": 30,
+                                            "guidance_scale": 5
+                                        }
+                                    )
+                                    if output:
+                                        st.image(output[0], caption=f"AI Preview: {hairstyle_name}", use_column_width=True)
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+                        else:
+                            st.warning("AI Generation is disabled (Missing Key).")
 
     else:
         st.markdown("""
